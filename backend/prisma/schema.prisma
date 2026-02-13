@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Submission {
+  id              String    @id @default(cuid())
+
+  // Photo
+  photoIpfsUrl    String
+  photoGatewayUrl String
+
+  // Content
+  comment         String
+
+  // Social handles (optional)
+  xHandle         String?
+  instagramHandle String?
+  blueskyHandle   String?
+
+  // Identity
+  email           String?
+  walletAddress   String
+
+  // Moderation
+  status          String    @default("pending") // pending | approved | denied
+  adminNotes      String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+
+  // Minting (populated after approval + mint)
+  mintTxHash         String?
+  mintedToCollection String?
+  tokenId            String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([walletAddress])
+  @@index([createdAt])
+}
+
+model NftCollection {
+  id              String   @id @default(cuid())
+  name            String
+  contractAddress String
+  chainId         Int      @default(137)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@unique([contractAddress, chainId])
+}
