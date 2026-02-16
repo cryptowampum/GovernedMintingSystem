@@ -12,14 +12,17 @@ const challenges = new Map();
 // ERC-1271 magic value returned by isValidSignature
 const ERC1271_MAGIC = '0x1626ba7e';
 
+const SESSION_TTL = 4 * 60 * 60 * 1000; // 4 hours
+const CHALLENGE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // Clean expired sessions/challenges every 5 minutes
 setInterval(() => {
   const now = Date.now();
   for (const [token, session] of sessions.entries()) {
-    if (now - session.createdAt > 24 * 60 * 60 * 1000) sessions.delete(token);
+    if (now - session.createdAt > SESSION_TTL) sessions.delete(token);
   }
   for (const [nonce, challenge] of challenges.entries()) {
-    if (now - challenge.createdAt > 5 * 60 * 1000) challenges.delete(nonce);
+    if (now - challenge.createdAt > CHALLENGE_TTL) challenges.delete(nonce);
   }
 }, 5 * 60 * 1000);
 
@@ -81,34 +84,39 @@ async function verifySmartWallet(walletAddress, message, signature, recoveredEOA
 }
 
 async function verifySignatureAndCreateSession(message, signature, claimedAddress) {
-  console.log('--- Admin Auth Debug ---');
-  console.log('Claimed address:', claimedAddress);
-  console.log('Admin wallets:', ADMIN_WALLETS);
+  // Validate the challenge nonce exists and hasn't expired
+  const nonceMatch = message.match(/Nonce: ([a-f0-9]+)/);
+  if (!nonceMatch || !challenges.has(nonceMatch[1])) {
+    console.log('Auth failed: invalid or expired challenge nonce');
+    return null;
+  }
+  const challenge = challenges.get(nonceMatch[1]);
+  if (Date.now() - challenge.createdAt > CHALLENGE_TTL) {
+    challenges.delete(nonceMatch[1]);
+    console.log('Auth failed: challenge expired');
+    return null;
+  }
+  // Consume the challenge so it can't be reused
+  challenges.delete(nonceMatch[1]);
 
   // 1. Try standard EOA recovery
   let recoveredEOA = null;
   try {
     recoveredEOA = ethers.verifyMessage(message, signature).toLowerCase();
-    console.log('EOA recovered address:', recoveredEOA);
-    console.log('EOA match:', ADMIN_WALLETS.includes(recoveredEOA));
     if (ADMIN_WALLETS.includes(recoveredEOA)) {
       const token = crypto.randomBytes(32).toString('hex');
       sessions.set(token, { address: recoveredEOA, createdAt: Date.now() });
       return { token, address: recoveredEOA };
     }
   } catch (err) {
-    console.log('EOA recovery failed:', err.message);
+    // EOA recovery failed, try smart wallet below
   }
 
   // 2. Try smart wallet verification if a claimed address was provided
   if (claimedAddress) {
     const claimedLower = claimedAddress.toLowerCase();
-    console.log('Trying smart wallet verify for:', claimedLower);
-    console.log('Address in admin list:', ADMIN_WALLETS.includes(claimedLower));
-
     if (ADMIN_WALLETS.includes(claimedLower)) {
       const valid = await verifySmartWallet(claimedAddress, message, signature, recoveredEOA);
-      console.log('Smart wallet verify result:', valid);
       if (valid) {
         const token = crypto.randomBytes(32).toString('hex');
         sessions.set(token, { address: claimedLower, createdAt: Date.now() });
@@ -117,7 +125,6 @@ async function verifySignatureAndCreateSession(message, signature, claimedAddres
     }
   }
 
-  console.log('--- Auth failed ---');
   return null;
 }
 
@@ -128,7 +135,7 @@ function verifySession(req, res, next) {
   }
 
   const session = sessions.get(token);
-  if (Date.now() - session.createdAt > 24 * 60 * 60 * 1000) {
+  if (Date.now() - session.createdAt > SESSION_TTL) {
     sessions.delete(token);
     return res.status(401).json({ error: 'Session expired' });
   }

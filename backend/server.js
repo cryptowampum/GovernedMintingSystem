@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 require('dotenv').config();
 
 const uploadRoutes = require('./routes/upload');
@@ -10,24 +11,20 @@ const adminRoutes = require('./routes/admin');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Security headers
+app.use(helmet());
+
 // CORS
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || [
-  'http://localhost:3000',
-  'http://localhost:3002',
-  'http://localhost:5173',
-  'http://localhost:5174',
-];
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [];
 
 app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
-      if (origin.startsWith('http://localhost:') && process.env.NODE_ENV !== 'production') {
+      if (process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+):\d+$/.test(origin)) {
         return callback(null, true);
       }
-      if (ALLOWED_ORIGINS.indexOf(origin) !== -1) return callback(null, true);
-      if (origin.endsWith('.unicornmini.app') && origin.startsWith('https://')) return callback(null, true);
-      if (origin.endsWith('.vercel.app') && origin.startsWith('https://')) return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
       callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
@@ -36,7 +33,7 @@ app.use(
   })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // Request logging
 app.use((req, res, next) => {

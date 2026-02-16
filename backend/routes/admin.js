@@ -6,14 +6,53 @@ const { mintNFT } = require('../lib/mint');
 const prisma = new PrismaClient();
 const router = express.Router();
 
+// --- Rate limiting for auth ---
+const authAttempts = new Map();
+const AUTH_WINDOW_MS = 15 * 60 * 1000;
+const AUTH_MAX_ATTEMPTS = 10;
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of authAttempts.entries()) {
+    if (now > entry.resetTime) authAttempts.delete(ip);
+  }
+}, 60000);
+
+function authRateLimit(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  if (!authAttempts.has(ip)) {
+    authAttempts.set(ip, { count: 1, resetTime: now + AUTH_WINDOW_MS });
+    return next();
+  }
+  const entry = authAttempts.get(ip);
+  if (now > entry.resetTime) {
+    entry.count = 1;
+    entry.resetTime = now + AUTH_WINDOW_MS;
+    return next();
+  }
+  if (entry.count >= AUTH_MAX_ATTEMPTS) {
+    return res.status(429).json({ error: 'Too many auth attempts. Try again later.' });
+  }
+  entry.count++;
+  next();
+}
+
+// --- Input validation ---
+const MAX_COMMENT_LENGTH = 2000;
+const MAX_HANDLE_LENGTH = 100;
+const MAX_NOTES_LENGTH = 5000;
+const SUPPORTED_CHAINS = [137, 8453, 42161];
+const isValidAddress = (addr) => /^0x[a-fA-F0-9]{40}$/.test(addr);
+
 // --- Auth ---
 
-router.get('/auth/challenge', (req, res) => {
+router.get('/auth/challenge', authRateLimit, (req, res) => {
   const challenge = generateChallenge();
   res.json(challenge);
 });
 
-router.post('/auth/verify', express.json(), async (req, res) => {
+router.post('/auth/verify', authRateLimit, express.json(), async (req, res) => {
   const { message, signature, address } = req.body;
   if (!message || !signature) {
     return res.status(400).json({ error: 'message and signature are required' });
@@ -70,6 +109,20 @@ router.get('/submissions/:id', async (req, res) => {
 router.patch('/submissions/:id', express.json(), async (req, res) => {
   try {
     const { comment, xHandle, instagramHandle, blueskyHandle, email, adminNotes } = req.body;
+
+    // Input length validation
+    if (comment !== undefined && comment.length > MAX_COMMENT_LENGTH) {
+      return res.status(400).json({ error: `Comment exceeds ${MAX_COMMENT_LENGTH} characters` });
+    }
+    if (adminNotes !== undefined && adminNotes.length > MAX_NOTES_LENGTH) {
+      return res.status(400).json({ error: `Admin notes exceeds ${MAX_NOTES_LENGTH} characters` });
+    }
+    for (const [name, val] of Object.entries({ xHandle, instagramHandle, blueskyHandle })) {
+      if (val !== undefined && val.length > MAX_HANDLE_LENGTH) {
+        return res.status(400).json({ error: `${name} exceeds ${MAX_HANDLE_LENGTH} characters` });
+      }
+    }
+
     const submission = await prisma.submission.update({
       where: { id: req.params.id },
       data: {
@@ -162,7 +215,7 @@ router.post('/submissions/:id/mint', express.json(), async (req, res) => {
     res.json({ success: true, txHash: result.txHash, tokenId: result.tokenId, submission: updated });
   } catch (error) {
     console.error('Mint error:', error.message);
-    res.status(500).json({ error: 'Minting failed', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
+    res.status(500).json({ error: 'Minting failed' });
   }
 });
 
@@ -185,6 +238,10 @@ router.post('/collections', express.json(), async (req, res) => {
   try {
     const { name, contractAddress, chainId } = req.body;
     if (!name || !contractAddress) return res.status(400).json({ error: 'name and contractAddress are required' });
+    if (!isValidAddress(contractAddress)) return res.status(400).json({ error: 'Invalid contract address format' });
+    if (chainId && !SUPPORTED_CHAINS.includes(chainId)) {
+      return res.status(400).json({ error: `Unsupported chain. Supported: ${SUPPORTED_CHAINS.join(', ')}` });
+    }
 
     const collection = await prisma.nftCollection.create({
       data: { name, contractAddress, chainId: chainId || 137 },

@@ -1,16 +1,21 @@
-// API Key verification middleware (from SuperFantastic pattern)
-const verifyApiKey = (req, res, next) => {
-  const apiKey = req.headers['x-api-key'] || req.headers['authorization'];
+const crypto = require('crypto');
 
-  if (process.env.NODE_ENV === 'development' && !process.env.API_SECRET) {
-    return next();
+const verifyApiKey = (req, res, next) => {
+  const apiKey = req.headers['x-api-key'];
+
+  if (!process.env.API_SECRET) {
+    console.error('API_SECRET not configured');
+    return res.status(500).json({ error: 'Server misconfigured' });
   }
 
   if (!apiKey) {
     return res.status(401).json({ error: 'API key required' });
   }
 
-  if (apiKey !== process.env.API_SECRET) {
+  // Timing-safe comparison to prevent timing attacks
+  const expected = Buffer.from(process.env.API_SECRET);
+  const provided = Buffer.from(apiKey);
+  if (expected.length !== provided.length || !crypto.timingSafeEqual(expected, provided)) {
     return res.status(401).json({ error: 'Invalid API key' });
   }
 

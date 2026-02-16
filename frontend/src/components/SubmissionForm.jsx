@@ -62,8 +62,10 @@ export default function SubmissionForm({ walletAddress, onSuccess }) {
       <PhotoCapture photo={photo} setPhoto={setPhoto} photoPreview={photoPreview} setPhotoPreview={setPhotoPreview} />
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{t('form.comment')} *</label>
+        <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-1">{t('form.comment')} *</label>
         <textarea
+          id="comment"
+          name="comment"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder={t('form.commentPlaceholder')}
@@ -75,8 +77,10 @@ export default function SubmissionForm({ walletAddress, onSuccess }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">{t('form.email')}</label>
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">{t('form.email')}</label>
         <input
+          id="email"
+          name="email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -90,19 +94,28 @@ export default function SubmissionForm({ walletAddress, onSuccess }) {
           <AtSign size={14} /> {t('form.socialHandles')} <span className="text-gray-400 font-normal">{t('form.optional')}</span>
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <label htmlFor="xHandle" className="sr-only">X handle</label>
           <input
+            id="xHandle"
+            name="xHandle"
             value={xHandle}
             onChange={(e) => setXHandle(e.target.value)}
             placeholder={t('form.xPlaceholder')}
             className="border border-gray-300 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
+          <label htmlFor="instagramHandle" className="sr-only">Instagram handle</label>
           <input
+            id="instagramHandle"
+            name="instagramHandle"
             value={instagramHandle}
             onChange={(e) => setInstagramHandle(e.target.value)}
             placeholder={t('form.instagramPlaceholder')}
             className="border border-gray-300 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
+          <label htmlFor="blueskyHandle" className="sr-only">Bluesky handle</label>
           <input
+            id="blueskyHandle"
+            name="blueskyHandle"
             value={blueskyHandle}
             onChange={(e) => setBlueskyHandle(e.target.value)}
             placeholder={t('form.blueskyPlaceholder')}

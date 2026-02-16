@@ -15,7 +15,7 @@ const connectors = connectorsForWallets(
     },
   ],
   {
-    appName: 'Governed Minting Admin',
+    appName: import.meta.env.VITE_APP_TITLE || 'Fun with Bridget',
     projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
   }
 );
