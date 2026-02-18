@@ -9,15 +9,15 @@ const EXPLORERS = {
   42161: 'https://arbiscan.io',
 };
 
-export default function MintAction({ submission, onMinted, alreadyMinted }) {
+export default function MintAction({ submission, onMinted, alreadyMinted, collection }) {
   const [minting, setMinting] = useState(false);
   const [error, setError] = useState('');
   const [mintResult, setMintResult] = useState(
     alreadyMinted ? {
       txHash: submission.mintTxHash,
       tokenId: submission.tokenId,
-      contractAddress: submission.contractAddress,
-      chainId: submission.chainId,
+      contractAddress: collection?.contractAddress,
+      chainId: collection?.chainId,
     } : null
   );
 

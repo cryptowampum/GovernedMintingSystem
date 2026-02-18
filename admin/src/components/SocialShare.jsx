@@ -5,7 +5,9 @@ const normalize = (h) => h ? `@${h.replace(/^@/, '')}` : '';
 
 const OPENSEA_CHAINS = { 137: 'matic', 8453: 'base', 42161: 'arbitrum' };
 
-export default function SocialShare({ submission, txHash, tokenId, contractAddress }) {
+const DEFAULT_CONTRACT = '0x398bf23a6f4b2a58e98744312084e2e4f6e71b2c';
+
+export default function SocialShare({ submission, txHash, tokenId, contractAddress = DEFAULT_CONTRACT }) {
   const [copied, setCopied] = useState(false);
 
   if (!txHash) return null;
@@ -17,22 +19,36 @@ export default function SocialShare({ submission, txHash, tokenId, contractAddre
     ? `https://opensea.io/item/${openseaChain}/${contractAddress}/${tokenId}`
     : null;
 
+  // User handles (from submission)
   const xHandle = normalize(submission.xHandle);
   const blueskyHandle = normalize(submission.blueskyHandle);
   const instagramHandle = normalize(submission.instagramHandle);
 
-  const shareText = [
+  // Brand handles (from env)
+  const brandXHandle = normalize(import.meta.env.VITE_TWITTER_HANDLE);
+  const brandBskyHandle = normalize(import.meta.env.VITE_BLUESKY_HANDLE);
+  const serviceLink = import.meta.env.VITE_SERVICE_LINK || '';
+
+  const xText = [
     submission.comment,
+    xHandle,
     openseaUrl,
+    [serviceLink, brandXHandle ? `via ${brandXHandle}` : ''].filter(Boolean).join(' '),
   ].filter(Boolean).join('\n');
 
-  const xText = xHandle ? `${shareText}\n${xHandle}` : shareText;
-  const bskyText = blueskyHandle ? `${shareText}\n${blueskyHandle}` : shareText;
+  const bskyText = [
+    submission.comment,
+    blueskyHandle,
+    openseaUrl,
+    [serviceLink, brandBskyHandle ? `via ${brandBskyHandle}` : ''].filter(Boolean).join(' '),
+  ].filter(Boolean).join('\n');
+
   const instaText = [
     submission.comment,
     instagramHandle,
     '#NFT',
     openseaUrl,
+    serviceLink,
   ].filter(Boolean).join('\n');
 
   const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(xText)}`;

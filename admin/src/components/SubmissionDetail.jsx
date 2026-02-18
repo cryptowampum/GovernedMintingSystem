@@ -189,7 +189,12 @@ export default function SubmissionDetail({ submission: initial, onBack }) {
 
           {/* Show mint info */}
           {sub.mintTxHash && (
-            <MintAction submission={sub} onMinted={() => {}} alreadyMinted />
+            <MintAction
+              submission={sub}
+              onMinted={() => {}}
+              alreadyMinted
+              collection={collections.find(c => c.name === sub.mintedToCollection)}
+            />
           )}
         </div>
       </div>
