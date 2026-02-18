@@ -15,7 +15,7 @@ const connectors = connectorsForWallets(
     },
   ],
   {
-    appName: 'Governed Minting System',
+    appName: 'Community Minting Platform',
     projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
   }
 );

@@ -6,10 +6,80 @@
     <link rel="icon" type="image/jpeg" sizes="16x16" href="/unicorn-logo16x16.jpg" />
     <link rel="apple-touch-icon" sizes="72x72" href="/unicorn-logo-72x72.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#6366f1" />
     <title>%VITE_APP_TITLE%</title>
+
+    <!-- Preconnect to critical origins -->
+    <link rel="preconnect" href="%VITE_BACKEND_URL%" crossorigin />
+    <link rel="preconnect" href="https://gateway.pinata.cloud" crossorigin />
+
+    <!-- Loading skeleton -->
+    <style>
+      .skeleton {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px;
+        background: linear-gradient(to bottom right, rgb(238 242 255), rgb(224 231 255), rgb(238 242 255));
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      .skeleton-card {
+        background: rgba(255,255,255,0.95);
+        backdrop-filter: blur(12px);
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
+        padding: 32px;
+        width: 100%;
+        max-width: 28rem;
+        text-align: center;
+      }
+      .skeleton-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 8px;
+      }
+      .skeleton-sub {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 24px;
+      }
+      .skeleton-btn {
+        width: 100%;
+        padding: 14px;
+        border-radius: 12px;
+        background: linear-gradient(to right, rgb(99 102 241), rgb(79 70 229));
+        border: none;
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      .skeleton-pulse {
+        animation: skpulse 1.5s ease-in-out infinite;
+      }
+      @keyframes skpulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+      }
+      #root:not(:empty) + .skeleton { display: none; }
+      @media (prefers-color-scheme: dark) {
+        .skeleton { background: linear-gradient(to bottom right, #1e1b4b, #312e81, #1e1b4b); }
+        .skeleton-card { background: rgba(30,27,75,0.95); }
+        .skeleton-title { color: #e5e7eb; }
+        .skeleton-sub { color: #9ca3af; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div class="skeleton">
+      <div class="skeleton-card">
+        <div class="skeleton-title skeleton-pulse">Loading Admin...</div>
+        <div class="skeleton-sub">Preparing dashboard</div>
+        <div class="skeleton-btn skeleton-pulse" aria-hidden="true">Connect Wallet</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

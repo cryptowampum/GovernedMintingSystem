@@ -1,57 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Share2, Copy, Check, ExternalLink } from 'lucide-react';
-import { getShareUrls, recordShare } from '../lib/api';
 
-export default function SocialShare({ submission, txHash, tokenId }) {
-  const [urls, setUrls] = useState(null);
+const normalize = (h) => h ? `@${h.replace(/^@/, '')}` : '';
+
+const OPENSEA_CHAINS = { 137: 'matic', 8453: 'base', 42161: 'arbitrum' };
+
+export default function SocialShare({ submission, txHash, tokenId, contractAddress }) {
   const [copied, setCopied] = useState(false);
-  const [shared, setShared] = useState({
-    x: submission.sharedToX,
-    bluesky: submission.sharedToBluesky,
-    instagram: submission.sharedToInstagram,
-  });
 
-  useEffect(() => {
-    if (submission.id && txHash) {
-      getShareUrls(submission.id).then(setUrls).catch(() => {});
-    }
-  }, [submission.id, txHash]);
+  if (!txHash) return null;
 
-  useEffect(() => {
-    setShared({
-      x: submission.sharedToX,
-      bluesky: submission.sharedToBluesky,
-      instagram: submission.sharedToInstagram,
-    });
-  }, [submission.sharedToX, submission.sharedToBluesky, submission.sharedToInstagram]);
+  const chainId = parseInt(import.meta.env.VITE_CHAIN_ID || '137');
+  const openseaChain = OPENSEA_CHAINS[chainId] || 'matic';
 
-  const handleShare = async (platform, url) => {
-    try {
-      await recordShare(submission.id, platform);
-      setShared((prev) => ({ ...prev, [platform]: new Date().toISOString() }));
-    } catch (e) {
-      console.error('Failed to record share:', e);
-    }
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
+  const openseaUrl = tokenId && contractAddress
+    ? `https://opensea.io/item/${openseaChain}/${contractAddress}/${tokenId}`
+    : null;
 
-  const handleCopyInstagram = async () => {
-    await navigator.clipboard.writeText(urls.instagram.caption);
+  const xHandle = normalize(submission.xHandle);
+  const blueskyHandle = normalize(submission.blueskyHandle);
+  const instagramHandle = normalize(submission.instagramHandle);
+
+  const shareText = [
+    submission.comment,
+    openseaUrl,
+  ].filter(Boolean).join('\n');
+
+  const xText = xHandle ? `${shareText}\n${xHandle}` : shareText;
+  const bskyText = blueskyHandle ? `${shareText}\n${blueskyHandle}` : shareText;
+  const instaText = [
+    submission.comment,
+    instagramHandle,
+    '#NFT',
+    openseaUrl,
+  ].filter(Boolean).join('\n');
+
+  const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(xText)}`;
+  const bskyUrl = `https://bsky.app/intent/compose?text=${encodeURIComponent(bskyText)}`;
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(instaText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    try {
-      await recordShare(submission.id, 'instagram');
-      setShared((prev) => ({ ...prev, instagram: new Date().toISOString() }));
-    } catch (e) {
-      console.error('Failed to record share:', e);
-    }
   };
-
-  if (!urls) return null;
-
-  const hasXHandle = !!submission.xHandle;
-  const hasBlueskyHandle = !!submission.blueskyHandle;
-  const hasInstagramHandle = !!submission.instagramHandle;
 
   return (
     <div className="bg-gray-50 rounded-xl p-3 sm:p-4 space-y-3">
@@ -59,50 +50,36 @@ export default function SocialShare({ submission, txHash, tokenId }) {
         <Share2 size={14} /> Share
       </h3>
 
-      <div className="flex flex-col sm:flex-row gap-2">
-        {/* X / Twitter */}
-        {hasXHandle && (
-          <button
-            onClick={() => handleShare('x', urls.x.url)}
-            className="flex-1 bg-black text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition text-center flex items-center justify-center gap-1.5"
-          >
-            {shared.x ? <><Check size={14} /> Shared to X</> : 'Post to X'}
-          </button>
-        )}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => window.open(xUrl, '_blank', 'noopener,noreferrer')}
+          className="inline-flex items-center px-3 py-2 rounded-lg text-white text-sm font-medium bg-black hover:bg-gray-800 transition"
+        >
+          <span className="mr-1.5">🐦</span> X / Twitter
+        </button>
 
-        {/* Bluesky */}
-        {hasBlueskyHandle && (
-          <button
-            onClick={() => handleShare('bluesky', urls.bluesky.url)}
-            className="flex-1 bg-blue-500 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-600 transition text-center flex items-center justify-center gap-1.5"
-          >
-            {shared.bluesky ? <><Check size={14} /> Shared to Bluesky</> : 'Post to Bluesky'}
-          </button>
-        )}
+        <button
+          onClick={() => window.open(bskyUrl, '_blank', 'noopener,noreferrer')}
+          className="inline-flex items-center px-3 py-2 rounded-lg text-white text-sm font-medium bg-blue-500 hover:bg-blue-600 transition"
+        >
+          <span className="mr-1.5">🦋</span> Bluesky
+        </button>
+
+        <button
+          onClick={handleCopy}
+          className="inline-flex items-center px-3 py-2 rounded-lg text-white text-sm font-medium bg-pink-500 hover:bg-pink-600 transition"
+        >
+          {copied ? (
+            <><Check size={14} className="mr-1.5" /> Copied!</>
+          ) : (
+            <><Copy size={14} className="mr-1.5" /> Instagram</>
+          )}
+        </button>
       </div>
 
-      {/* Instagram - copy caption */}
-      {hasInstagramHandle && (
-        <div className="bg-white rounded-lg p-3 border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-gray-500">
-              Instagram Caption {shared.instagram && <Check size={12} className="inline ml-1 text-green-600" />}
-            </span>
-            <button
-              onClick={handleCopyInstagram}
-              className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-            >
-              {copied ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy</>}
-            </button>
-          </div>
-          <p className="text-xs text-gray-600 whitespace-pre-wrap">{urls.instagram.caption}</p>
-        </div>
-      )}
-
-      {/* OpenSea link */}
-      {urls.opensea && (
+      {openseaUrl && (
         <a
-          href={urls.opensea}
+          href={openseaUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-indigo-600 hover:underline flex items-center gap-1"

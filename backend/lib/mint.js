@@ -47,7 +47,7 @@ async function mintNFT({ contractAddress, chainId, recipientAddress, imageIpfsUr
       recipientAddress,
       imageIpfsUrl,
       comment,
-      eventName || 'GovernedMint',
+      eventName || 'Community Minting Platform',
       BigInt(Math.floor(Date.now() / 1000)),
     ],
   });

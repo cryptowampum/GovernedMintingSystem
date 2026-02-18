@@ -21,6 +21,7 @@
     "react-dom": "^18.2.0",
     "react-i18next": "^16.5.4",
     "viem": "^2.45.3",
+    "vite-plugin-compression2": "^2.4.0",
     "wagmi": "^2.19.5"
   },
   "devDependencies": {

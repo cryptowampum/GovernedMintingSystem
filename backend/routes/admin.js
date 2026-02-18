@@ -99,6 +99,18 @@ router.get('/submissions/:id', async (req, res) => {
   try {
     const submission = await prisma.submission.findUnique({ where: { id: req.params.id } });
     if (!submission) return res.status(404).json({ error: 'Submission not found' });
+
+    // Include collection details for minted submissions
+    if (submission.mintedToCollection) {
+      const collection = await prisma.nftCollection.findFirst({
+        where: { name: submission.mintedToCollection },
+      });
+      if (collection) {
+        submission.contractAddress = collection.contractAddress;
+        submission.chainId = collection.chainId;
+      }
+    }
+
     res.json(submission);
   } catch (error) {
     console.error('Get submission error:', error.message);
@@ -212,7 +224,7 @@ router.post('/submissions/:id/mint', express.json(), async (req, res) => {
       data: { mintTxHash: result.txHash, tokenId: result.tokenId },
     });
 
-    res.json({ success: true, txHash: result.txHash, tokenId: result.tokenId, submission: updated });
+    res.json({ success: true, txHash: result.txHash, tokenId: result.tokenId, contractAddress: collection.contractAddress, chainId: collection.chainId, submission: updated });
   } catch (error) {
     console.error('Mint error:', error.message);
     res.status(500).json({ error: 'Minting failed' });

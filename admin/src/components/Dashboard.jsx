@@ -21,7 +21,7 @@ export default function Dashboard() {
       {/* Top bar */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 px-3 sm:px-4 py-2 sm:py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <h1 className="font-bold text-gray-800 text-sm sm:text-lg">Governed Minting Admin</h1>
+          <h1 className="font-bold text-gray-800 text-sm sm:text-lg">Unicorns, Inc Community Minting Admin</h1>
           <div className="flex items-center gap-2 sm:gap-4">
             <span className="text-xs sm:text-sm text-gray-500 font-mono">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
             <button onClick={handleLogout} className="text-gray-400 hover:text-gray-600 transition">
